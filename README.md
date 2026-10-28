@@ -52,7 +52,8 @@ the part everyone misses, and the reason the built-in command segfaults.
 
 ### 1. Get the repo
 
-    git clone https://github.com/<you>/<repo>.git "$HOME/Documents/Unreal Projects/_Shared"
+    git clone https://github.com/urijaRom26/Unreal-Engine-Live-Reload-Linux-UELRL.git \
+        "$HOME/Documents/Unreal Projects/_Shared"
 
 The repo directory doubles as the **shared plugin root**: `_Shared/LiveReload/`
 is the plugin, and every project points at it with one JSON line — no copying,
