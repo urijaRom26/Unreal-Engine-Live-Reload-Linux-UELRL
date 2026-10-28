@@ -1,0 +1,25 @@
+# Unreal build products
+Binaries/
+Intermediate/
+Saved/
+DerivedDataCache/
+*.so
+*.debug
+*.sym
+*.o
+*.d
+*.target
+*.modules
+Makefile
+
+# editor / OS noise
+.vs/
+.vscode/
+.idea/
+*.sln
+*.xcworkspace
+.DS_Store
+
+# python
+__pycache__/
+*.pyc

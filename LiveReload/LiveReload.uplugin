@@ -1,0 +1,28 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0",
+	"FriendlyName": "Live Reload",
+	"Description": "Applies C++ function-body changes to the running editor on Linux by recompiling the game module and hot-reloading it.",
+	"Category": "Development",
+	"CreatedBy": "Urija",
+	"CanContainContent": false,
+	"EditorOnly": true,
+	"IsBetaVersion": true,
+	"IsExperimentalVersion": false,
+	"EnabledByDefault": true,
+	"Modules": [
+		{
+			"Name": "LiveReload",
+			"Type": "Editor",
+			"LoadingPhase": "PostEngineInit",
+			"TargetAllowList": [ "Editor" ]
+		}
+	],
+	"Plugins": [
+		{
+			"Name": "ToolsetRegistry",
+			"Enabled": true
+		}
+	]
+}
