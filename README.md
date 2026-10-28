@@ -199,6 +199,16 @@ register itself explicitly.
   supported by the underlying reloader.
 - Packaging/cooking is unaffected — the plugin is `EditorOnly`.
 
+## Uninstall
+
+1. Remove `"AdditionalPluginDirectories"` (or the `"../_Shared"` entry) and the
+   `LiveReload` entry from the `.uproject`.
+2. Optionally revert the module: replace the `class F<Project>Module …` block with
+   the original `IMPLEMENT_PRIMARY_GAME_MODULE(FDefaultGameModuleImpl, <Project>, "<Project>");`.
+   Keep it if you want the safety net — returning `false` only means the module is
+   never unloaded dynamically, which is harmless without the plugin.
+3. Rebuild. Nothing is written outside the project and the plugin directory.
+
 ## Repo layout
 
 ```
