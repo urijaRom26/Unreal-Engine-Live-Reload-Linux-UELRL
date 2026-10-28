@@ -1,14 +1,24 @@
 # UELRL — Unreal Engine Live Reload (Linux)
 
-Live C++ iteration for Unreal Engine 5 on Linux: edit a function body, press
-one button (or run one command), and the running editor executes the new code
-**in about 5 seconds** — no editor restart, no re-opened project, no lost PIE
-session, and the editor's automation/MCP connection stays alive.
+**Let your AI code in Unreal C++ and see the change in the running game in about
+5 seconds — no editor restart, no rebuild-and-reopen cycle.**
 
-Unreal's built-in **Live Coding does not exist on Linux** (`bWithLiveCoding` is
-gated to Win64 in `TargetRules.cs`), and the legacy `Module Recompile` path
-crashes the editor out of the box on Linux. This project turns that legacy path
-into something usable.
+Without this, every C++ change in Unreal means: close the editor (it has the
+compiled module mapped), rebuild, reopen the project, wait for the editor to
+come up, start PIE again — 40-60 s plus project load. Any automation or MCP
+connection the agent had is gone with the restart. That is far too slow and too
+disruptive for an AI agent to iterate on gameplay code.
+
+UELRL makes the loop: **edit a `.cpp` function body → one tool call → the running
+editor executes the new code in 2.8-5.2 s**. PIE state, unsaved levels, the
+viewport and the editor's MCP/automation connection all stay alive, so an agent
+can write code, reload, play, read the log and fix it in a single session
+without you touching the editor.
+
+Why it exists: Unreal's built-in **Live Coding does not exist on Linux**
+(`bWithLiveCoding` is gated to Win64 in `TargetRules.cs`), and the legacy
+`Module Recompile` path that Linux does ship crashes the editor out of the box.
+This repo fixes that crash and wraps the reload in a toolset an AI can call.
 
 Tested on **UE 5.8.4, Linux x64, installed (binary) build**, clang 20 toolchain
 bundled with the engine.
@@ -16,9 +26,64 @@ bundled with the engine.
 | action | measured |
 |---|---|
 | apply a `.cpp` body edit | **2.8 – 5.2 s** |
-| editor stays up | yes (PIE and MCP untouched) |
+| editor stays up | yes (PIE, viewport, MCP untouched) |
 | plugin build, one time | ~3.5 s |
 | full editor restart (the alternative) | ~40 – 60 s + project load |
+
+## Give this to your AI
+
+Paste the whole block into your coding agent (Claude Code, Cursor, Codex, Copilot
+agent, Hermes, …). It installs, builds and verifies everything, then tells the
+agent how to work from then on.
+
+```text
+Set up UELRL (Unreal Engine Live Reload on Linux) so you can change Unreal C++
+gameplay code and apply it to the running editor without restarting the editor
+or rebuilding the project.
+
+Repo: https://github.com/urijaRom26/Unreal-Engine-Live-Reload-Linux-UELRL
+
+1. Clone it as the shared plugin root (or `git pull` if it already exists):
+   git clone https://github.com/urijaRom26/Unreal-Engine-Live-Reload-Linux-UELRL.git \
+     "$HOME/Documents/Unreal Projects/_Shared"
+
+2. Find the Unreal Engine root. Default on this machine is /opt/unreal-engine;
+   confirm that Engine/Binaries/Linux/libUnrealEditor-HotReload.so exists there.
+   If not, ask me for the engine path.
+
+3. For every C++ Unreal project (a directory containing a .uproject and a
+   Source/ folder - skip Blueprint-only projects), run:
+   python3 "$HOME/Documents/Unreal Projects/_Shared/scripts/ue_live_reload_setup.py" <project-dir> --dry-run
+   Show me the dry-run output, then run it again without --dry-run.
+   It adds "AdditionalPluginDirectories": ["../_Shared"] to the .uproject,
+   enables the LiveReload plugin, and patches the primary game module so it
+   returns SupportsDynamicReloading() == false (without that patch the first
+   reload segfaults the editor - do not skip it).
+
+4. Build each project once so the plugin module is compiled for it:
+   cd <project-dir>
+   rm -f Binaries/Linux/libUnrealEditor-<Name>.so   # only if its editor is open
+   <engine>/Engine/Build/BatchFiles/Linux/Build.sh <Name>Editor Linux Development \
+     -Project="$PWD/<Name>.uproject" -WaitMutex > Saved/build.log 2>&1
+   grep -E "error:|Result:" Saved/build.log        # require: Result: Succeeded
+
+5. Ask me to open the project in the Unreal Editor (you never launch or close
+   the editor yourself). Then verify:
+   python3 "$HOME/Documents/Unreal Projects/_Shared/scripts/ue_live_reload.py" --status
+   Expect "HotReload module: available" and the project's module listed.
+
+From then on, when you change the BODY of a function in a .cpp file:
+  - do NOT rebuild and do NOT ask me to restart the editor
+  - stop PIE if it is running, save your edit, then run:
+      python3 "$HOME/Documents/Unreal Projects/_Shared/scripts/ue_live_reload.py"
+    (~5 s; it prints the result and any compiler errors)
+  - start PIE again and verify the change
+Header changes, new members, UCLASS/USTRUCT/UFUNCTION/UPROPERTY changes, new
+classes, modules or plugins are NOT live: those need a full build and an editor
+restart, which you should set up with me.
+
+Report what you changed in each project and the final --status output.
+```
 
 ## What it is
 
@@ -28,10 +93,10 @@ Two parts, both in this repo:
    (`LiveReload.LiveReloadToolset`) with `ReloadGameCode` (recompile + swap the
    project's gameplay modules) and `GetLiveReloadStatus`. It drives the engine's
    own `IHotReloadInterface::RecompileModule`, so it works with or without the
-   editor UI.
+   editor UI, and it is the call an AI agent makes.
 2. **`scripts/`** — a two-script CLI: one installs the plugin into a project
-   idempotently, the other triggers a reload over HTTP (so you don't need any
-   MCP client integration to use it).
+   idempotently, the other triggers a reload over HTTP (so an agent needs no MCP
+   client integration to use it).
 
 Plus a one-line patch to your game module that makes the reload safe — that is
 the part everyone misses, and the reason the built-in command segfaults.
